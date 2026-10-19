@@ -8,9 +8,10 @@ Milestones, prompts and definitions of done are in docs/PLAYBOOK.md.
 If a task conflicts with the PRD, stop and ask before changing anything.
 
 ## Stack and commands
-- Backend: Python 3.12, FastAPI, SQLAlchemy 2.0, Alembic, PostgreSQL, Redis + RQ, OpenCV.
+- Backend: Python 3.12, FastAPI, SQLAlchemy 2.0, Alembic, PostgreSQL (installed locally as a Windows service), a PostgreSQL-backed job queue behind a JobQueue interface, OpenCV. No Docker and no Redis for now.
 - Frontend: React, Vite, TypeScript, TanStack Query, Tailwind.
-- Start services: `docker compose up -d db redis`
+- Database: local PostgreSQL service (see docs/PLAYBOOK.md step 1.1b)
+- Run API: `cd backend && uv run uvicorn app.main:app --reload`; worker: `uv run python -m app.worker`; web: `cd frontend && pnpm dev`
 - Backend: `cd backend && uv run pytest`, `uv run ruff check .`, `uv run mypy app`, `uv run alembic upgrade head`
 - Frontend: `cd frontend && pnpm dev`, `pnpm test`, `pnpm lint`, `pnpm e2e`
 
@@ -31,6 +32,7 @@ If a task conflicts with the PRD, stop and ask before changing anything.
 - Database changes only through Alembic migrations.
 - Tests never use the network. AI is tested with the fake provider.
 - Do not add a dependency without saying why.
+- Background work goes through the JobQueue interface. Do not add Docker or Redis unless asked.
 - Small commits with clear messages. Run lint and tests before saying a task is done.
 
 ## Workflow

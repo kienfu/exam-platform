@@ -72,8 +72,8 @@ Phần này tách rõ cái bạn đã chốt và cái tôi tự chọn mặc đ�
 
 | # | Mặc định | Lý do |
 | --- | --- | --- |
-| D1 | Phiếu trả lời xuất **PDF** (đề thi và file đáp án vẫn là Word) | Word không đảm bảo tọa độ chính xác; scan cần vị trí ô tô cố định |
-| D2 | Mã SV: lưới ô tô 8 chữ số (cấu hình được, tối đa 10). Mã đề: lưới 3 chữ số. QR ở đầu phiếu chứa mã đề thi và phiên bản layout. Không nhận dạng chữ viết tay | Ô tô cho độ chính xác cao hơn OCR |
+| D1 | Phiếu trả lời xuất **PDF** (đề thi và file đáp án vẫn là Word). Đã chốt (mục 10, câu 2) | Word không đảm bảo tọa độ chính xác; scan cần vị trí ô tô cố định |
+| D2 | Mã SV: lưới ô tô theo mẫu định dạng cấu hình được, mặc định 2 chữ cái + 6 chữ số (ví dụ HE170001): cột chữ cái tô A–Z, cột chữ số tô 0–9, tối đa 10 ký tự. Mã đề: lưới 3 chữ số. QR ở đầu phiếu chứa mã đề thi và phiên bản layout. Không nhận dạng chữ viết tay | Ô tô cho độ chính xác cao hơn OCR |
 | D3 | Câu nhiều đáp án chấm **tất cả hoặc không**: chọn đúng đủ bộ đáp án mới được điểm. Chấm từng phần để vào backlog | Đơn giản, minh bạch, đúng yêu cầu "không trừ điểm" |
 | D4 | Tối đa 60 câu/đề và 6 lựa chọn (A–F) mỗi câu để vừa một trang A4 | Giữ layout phiếu đơn giản ở v1 |
 | D5 | Câu hỏi chỉ là văn bản thuần: không hình, công thức, code | Bạn chưa nêu nhu cầu; tránh phức tạp hóa export và scan |
@@ -81,9 +81,10 @@ Phần này tách rõ cái bạn đã chốt và cái tôi tự chọn mặc đ�
 | D7 | Khi dựng đề, giảng viên dùng được câu Approved và câu do chính mình tạo (trừ câu bị Rejected). Chỉ câu Approved mới vào thư viện chung | Không chặn giảng viên chờ duyệt |
 | D8 | File Excel dựng đề chỉ chứa mã câu hỏi có sẵn. Câu hỏi mới nhập bằng template import câu hỏi và luôn được lưu vào ngân hàng | Diễn giải yêu cầu "tham chiếu mã câu hỏi" và "có lưu câu hỏi import" |
 | D9 | Sinh viên: xem kết quả đã được công bố, chi tiết bài làm, ảnh phiếu của mình và gửi yêu cầu phúc khảo | Cần cho việc dùng ảnh scan để đối chứng |
-| D10 | Mã SV là số. Nếu mã của trường có chữ cái, cần đổi cách mã hóa (xem mục 10) | Lưới ô tô ký tự chữ làm phiếu rất dài |
+| D10 | Mã SV gồm chữ và số, dạng 2 chữ cái + 6 chữ số (ví dụ HE170001), chuẩn hóa thành chữ hoa. Đã chốt (mục 10, câu 1) | Lưới ô tô ký tự chữ làm phiếu rất dài |
 | D11 | Thời hạn 4 tháng tính từ ngày tải ảnh lên; điểm và đáp án đã chấm giữ lâu dài | Chỉ ảnh bị xóa, kết quả vẫn còn |
-| D12 | Frontend React + Vite + TypeScript; CSDL PostgreSQL; hàng đợi Redis + RQ | Camera, màn hình review cần tương tác phong phú |
+| D12 | Frontend React + Vite + TypeScript; CSDL PostgreSQL cài trực tiếp trên máy (chưa dùng Docker); hàng đợi job lưu trong PostgreSQL (chưa dùng Redis) | Camera, màn hình review cần tương tác phong phú |
+| D13 | Giai đoạn đầu không dùng Docker và Redis: PostgreSQL cài trực tiếp trên máy; hàng đợi job là bảng trong PostgreSQL, truy cập qua giao diện JobQueue | Giảm công cài đặt khi phát triển trên Windows; vẫn thay được bằng Redis + RQ sau mà không đổi mã nghiệp vụ |
 
 ## 3. Vai trò, phân quyền và mô hình tổ chức
 
@@ -130,7 +131,7 @@ Hệ thống phục vụ một trường với cấu trúc Bộ môn/Khoa → M�
 | FR-AUTH-1 | Đăng nhập email + mật khẩu, đổi mật khẩu; Admin đặt lại mật khẩu | M |
 | FR-AUTH-2 | Phân quyền 4 vai trò, giới hạn theo bộ môn và môn được gán (mục 3) | M |
 | FR-AUTH-3 | Admin/HoD quản lý bộ môn, môn học, module (có thứ tự), CLO | M |
-| FR-AUTH-4 | Import danh sách sinh viên bằng Excel (student\_code, full\_name, email, class); tự tạo tài khoản, buộc đổi mật khẩu lần đầu | M |
+| FR-AUTH-4 | Import danh sách sinh viên bằng Excel (student\_code, full\_name, email, class); student\_code phải khớp mẫu định dạng (mặc định 2 chữ cái + 6 chữ số, chuẩn hóa chữ hoa); tự tạo tài khoản, buộc đổi mật khẩu lần đầu | M |
 
 **4.2 Ngân hàng câu hỏi**
 
@@ -243,7 +244,8 @@ Mỗi lần xuất tạo một gói ZIP:
 
 - A4 dọc, một trang, PDF vector sinh từ một *layout engine*. Layout engine xuất đồng thời PDF và một file layout JSON (tọa độ mm của mọi ô tô, marker, QR). Bộ đọc scan dùng chính file JSON này, nên bản in và bộ đọc không thể lệch nhau.
 - Bốn marker ArUco ở bốn góc để nắn phối cảnh; một mã QR chứa mã đề thi, phiên bản layout và checksum.
-- Lưới mã sinh viên (8 cột × chữ số 0–9, cấu hình được) và lưới mã đề (3 cột × chữ số 0–9). Sinh viên tô theo mã in trên đề của mình.
+- Lưới mã sinh viên theo mẫu định dạng (mặc định 8 cột: 2 cột chữ cái A–Z và 6 cột chữ số 0–9; cấu hình được) và lưới mã đề (3 cột × chữ số 0–9). Sinh viên tô theo mã in trên đề của mình.
+- Cột chữ cái có 26 hàng nên cao hơn cột chữ số. Layout engine phải xếp sao cho một trang A4 vẫn đủ lưới mã SV, lưới mã đề, QR và 60 câu; nếu không vừa, S1 báo và đề xuất phương án (ví dụ giới hạn tiền tố chữ cái theo danh sách trường cấu hình).
 - Vùng đáp án: mỗi câu một hàng, tối đa 6 ô (A–F). Câu có ít lựa chọn hơn số ô tối đa thì các ô thừa được in mờ. Câu True/False dùng A = True, B = False.
 - Có ô họ tên và chữ ký viết tay để giảng viên đối chiếu; máy không đọc các ô này.
 - Layout JSON được lưu cùng đề và bất biến sau khi chốt.
@@ -358,7 +360,7 @@ Một monolith FastAPI cộng worker nền, dùng chung mã nguồn; tách thàn
 
 **8.1 Kiến trúc tổng thể**
 
-Trình duyệt (máy giảng viên, điện thoại, máy sinh viên) gọi API; tác vụ nặng như gọi AI, chấm ảnh, xuất file đi qua hàng đợi sang worker.
+Trình duyệt (máy giảng viên, điện thoại, máy sinh viên) gọi API; tác vụ nặng như gọi AI, chấm ảnh, xuất file đi qua hàng đợi job (lưu trong PostgreSQL) sang worker.
 
 &#91;embedded content: kiến trúc tổng thể · 7 thành phần\]
 
@@ -370,8 +372,8 @@ Mọi tác vụ nặng chạy ở worker; chỉ worker gọi nhà cung cấp AI,
 | --- | --- | --- |
 | API | Python 3.12, FastAPI, Pydantic v2 | OpenAPI tự sinh |
 | ORM, migration | SQLAlchemy 2.0, Alembic |  |
-| CSDL | PostgreSQL 16 | Chạy bằng Docker Compose |
-| Hàng đợi | Redis + RQ | Chấm ảnh dùng CPU nặng nên cần worker theo tiến trình |
+| CSDL | PostgreSQL 16 | Cài trực tiếp trên máy Windows (giai đoạn đầu chưa dùng Docker) |
+| Hàng đợi | Bảng jobs trong PostgreSQL | Chấm ảnh dùng CPU nặng nên cần worker theo tiến trình riêng. Mã nghiệp vụ chỉ gọi giao diện JobQueue, nên có thể thay bằng Redis + RQ sau này mà không đổi mã nghiệp vụ |
 | Frontend | React, Vite, TypeScript, TanStack Query, Tailwind | Client API sinh từ OpenAPI |
 | Xác thực | JWT trong cookie httpOnly, băm mật khẩu argon2 | Thay bằng SSO ở giai đoạn sau |
 | Xử lý ảnh, OMR | OpenCV (aruco, QR), NumPy, Pillow |  |
@@ -409,11 +411,11 @@ class LLMProvider(Protocol):
 
 - Lớp `StorageBackend` (bản đầu dùng thư mục cục bộ, sau chuyển S3 hoặc MinIO). Ảnh scan được mã hóa lại JPEG, cạnh dài tối đa 2.480 px, chất lượng 85 để giảm dung lượng.
 - Job nền: sinh câu hỏi AI, import, chấm ảnh, xuất gói đề, dọn ảnh hết hạn (chạy mỗi đêm). Job idempotent, thử lại có giới hạn, trạng thái đọc qua API.
-- Số worker chấm ảnh mặc định 4, cấu hình được.
+- Số worker chấm ảnh mặc định 4, cấu hình được. Worker nhận job bằng truy vấn khóa dòng (FOR UPDATE SKIP LOCKED) trên bảng jobs, nên nhiều worker không nhận trùng một job.
 
 **8.5 Môi trường**
 
-- Giai đoạn đầu: `docker compose up` chạy cả postgres, redis, api, worker và web trên máy bạn.
+- Giai đoạn đầu: chạy trực tiếp trên máy Windows, chưa dùng Docker và Redis. PostgreSQL cài như một service của Windows; API, worker và web chạy bằng ba lệnh trong ba cửa sổ terminal (`uv run uvicorn`, `uv run python -m app.worker`, `pnpm dev`). Docker và Redis chỉ cân nhắc ở giai đoạn deploy.
 - Khi deploy: reverse proxy HTTPS (bắt buộc cho camera trực tiếp), sao lưu PostgreSQL và thư mục ảnh, quản lý khóa API bằng biến môi trường hoặc secret store.
 
 ## 9. Phi chức năng, bảo mật và rủi ro
@@ -443,18 +445,18 @@ class LLMProvider(Protocol):
 | Câu trùng làm đề lặp nội dung | Trung bình | Kiểm tra trùng ở mọi cửa vào; ngưỡng cấu hình được |
 | Lộ đề thi hoặc tài liệu qua provider AI bên ngoài | Cao | Provider chọn bằng cấu hình; cho phép mô hình chạy nội bộ; chốt chính sách trước khi deploy |
 | Sai đáp án sau khi đã chấm hàng trăm bài | Trung bình | Luồng đính chính và chấm lại có audit, không cần scan lại |
-| Mã SV của trường có chữ cái | Trung bình | Chốt định dạng mã SV sớm (mục 10); nếu cần, đổi sang lưới chữ hoặc mã vạch in sẵn |
+| Mã SV có 2 chữ cái, cột chữ cái 26 hàng làm lưới mã SV cao | Trung bình | Định dạng đã chốt (HE170001). S1 kiểm layout vừa A4 với 60 câu; nếu không vừa, giới hạn tiền tố chữ cái theo danh sách cấu hình hoặc dùng mã vạch in sẵn |
 | Phạm vi lớn, dễ trượt tiến độ | Trung bình | Chia mốc nhỏ có tiêu chí hoàn thành; chốt PRD là nguồn sự thật; ghi mọi thay đổi vào mục 10 |
 | Dung lượng ảnh lớn | Thấp | Mã hóa lại JPEG, dọn tự động sau 4 tháng |
 
 ## 10. Điểm còn mở cần bạn xác nhận
 
-Nếu bạn không trả lời, Claude Code sẽ dùng cột *Mặc định*. Câu 1 và câu 2 nên chốt trước khi làm S1 vì ảnh hưởng thiết kế phiếu.
+Nếu bạn không trả lời, Claude Code sẽ dùng cột *Mặc định*. Câu 1 và câu 2 đã chốt (xem cột Mặc định); các câu còn lại chưa trả lời.
 
 | # | Câu hỏi | Mặc định nếu không trả lời |
 | --- | --- | --- |
-| 1 | Mã sinh viên của trường chỉ gồm chữ số hay có cả chữ cái (ví dụ HE170001)? | Chỉ chữ số, 8 ký tự |
-| 2 | Phiếu trả lời xuất PDF (không phải Word) có chấp nhận được không? | PDF, vì cần tọa độ chính xác để scan |
+| 1 | Mã sinh viên của trường chỉ gồm chữ số hay có cả chữ cái (ví dụ HE170001)? | Đã chốt: gồm chữ và số, dạng HE170001 (2 chữ cái + 6 chữ số) |
+| 2 | Phiếu trả lời xuất PDF (không phải Word) có chấp nhận được không? | Đã chốt: dùng PDF, vì cần tọa độ chính xác để scan |
 | 3 | Tối đa 60 câu mỗi đề có đủ cho các kỳ thi thực tế không? | 60 câu, một trang phiếu |
 | 4 | Câu nhiều đáp án chấm tất cả hoặc không có đúng ý bạn không, hay cần chấm từng phần? | Tất cả hoặc không |
 | 5 | File Excel dựng đề chỉ chứa mã câu hỏi, còn câu mới nhập bằng template import câu hỏi, có đúng ý bạn không? | Đúng như mô tả ở D8 |

@@ -11,11 +11,30 @@ Làm xong phần này là bạn có một repo sạch, có PRD và `CLAUDE.md`, 
 | Công cụ | Dùng để | Kiểm tra |
 | --- | --- | --- |
 | Git | Quản lý mã nguồn, mỗi mốc một nhánh | `git --version` |
-| Docker Desktop | Chạy PostgreSQL, Redis, và cả hệ thống | `docker compose version` |
+| PostgreSQL 16 | Cơ sở dữ liệu của hệ thống (giai đoạn đầu chưa dùng Docker và Redis) | `psql --version` |
 | Python 3.12 và `uv` | Backend FastAPI | `uv --version` |
 | Node.js LTS và `pnpm` | Frontend React | `pnpm --version` |
 | Claude Code | Trợ lý viết mã trong terminal | Cài theo hướng dẫn chính thức trên docs.claude.com, rồi chạy `claude` trong thư mục repo |
 | Khóa API của AI provider (Anthropic) | Chạy tính năng sinh câu hỏi ở M4 | Lưu trong file `.env`, không commit |
+
+**Bước 1.1b. Cài PostgreSQL và tạo cơ sở dữ liệu**
+
+Giai đoạn này chưa dùng Docker và Redis, nên PostgreSQL được cài trực tiếp trên Windows. Hàng đợi job của hệ thống cũng nằm trong PostgreSQL, nên bạn không cần cài thêm gì khác.
+
+1. Tải trình cài đặt PostgreSQL 16 cho Windows từ trang chính thức postgresql.org (mục Download, Windows) và cài với các lựa chọn mặc định. Trình cài sẽ hỏi mật khẩu cho tài khoản `postgres`: hãy ghi lại, và giữ cổng mặc định 5432.
+2. Mở "SQL Shell (psql)" trong Start Menu (hoặc thêm thư mục `bin` của PostgreSQL vào `PATH` để chạy `psql` trong cmd), đăng nhập bằng tài khoản `postgres`, rồi chạy các lệnh sau (đổi mật khẩu thành mật khẩu của riêng bạn):
+
+```sql
+CREATE USER quizai WITH PASSWORD 'doi-mat-khau-nay';
+CREATE DATABASE quizai OWNER quizai;
+CREATE DATABASE quizai_test OWNER quizai;
+```
+
+3. Sau M0, sao chép `.env.example` thành `.env` và điền thông tin kết nối vào đúng dòng của cơ sở dữ liệu (người dùng `quizai`, mật khẩu bạn vừa đặt, cổng 5432; cơ sở dữ liệu `quizai` cho chạy thường và `quizai_test` cho test). Không commit `.env`.
+
+*Kiểm tra:* `psql --version` hiển thị phiên bản 16, và `psql -U quizai -d quizai -h localhost` đăng nhập được bằng mật khẩu vừa đặt.
+
+Khi cần deploy hoặc chạy nhiều máy, Docker và Redis có thể thêm sau. Hệ thống đã thiết kế sẵn giao diện `JobQueue` để việc đổi sang Redis không phải sửa mã nghiệp vụ.
 
 **Bước 1.2. Tạo repo**
 
@@ -38,12 +57,12 @@ git commit -m "docs: add PRD, PLAYBOOK and CLAUDE.md"
 
 **Bước 1.4. Chốt các điểm còn mở**
 
-Trả lời ít nhất câu 1 (định dạng mã sinh viên) và câu 2 (phiếu PDF) ở mục 10 của PRD, rồi sửa thẳng vào `docs/PRD.md` (mục 2, bảng B: các dòng D10 và D1 tương ứng). Claude Code đọc PRD để làm việc, nên PRD càng khớp quyết định thật càng ít phải sửa lại mã.
+Câu 1 (mã sinh viên gồm chữ và số, dạng HE170001) và câu 2 (phiếu trả lời xuất PDF) ở mục 10 của PRD đã được chốt và ghi vào PRD. Nếu bạn đổi quyết định nào, hoặc muốn trả lời các câu còn lại ở mục 10, hãy sửa thẳng vào `docs/PRD.md` (mục 2, bảng B: các dòng D10 và D1 tương ứng). Claude Code đọc PRD để làm việc, nên PRD càng khớp quyết định thật càng ít phải sửa lại mã.
 
 **Bước 1.5. Quy ước nhánh và quyền**
 
 - Mỗi mốc một nhánh, ví dụ `git switch -c m0-foundation`. Chỉ gộp vào `main` khi đã kiểm đủ tiêu chí hoàn thành.
-- Khi Claude Code xin quyền chạy lệnh, chỉ đồng ý với lệnh nằm trong repo (test, lint, docker compose, migration). Từ chối lệnh xóa file ngoài repo hoặc gửi dữ liệu ra ngoài.
+- Khi Claude Code xin quyền chạy lệnh, chỉ đồng ý với lệnh nằm trong repo (test, lint, migration). Từ chối lệnh xóa file ngoài repo hoặc gửi dữ liệu ra ngoài.
 - Khóa API và mật khẩu chỉ nằm trong `.env`. Nhờ Claude Code kiểm tra `.gitignore` đã chặn `.env` trước commit đầu tiên của M0.
 
 *Kiểm tra xong bước chuẩn bị:* `git log` có đúng một commit chứa `docs/PRD.md`, docs/PLAYBOOK.md và `CLAUDE.md`; mở `docs/PRD.md` đọc được đủ 10 mục.
@@ -140,7 +159,7 @@ git tag m1-done
 **Bộ lệnh kiểm tra dùng cho mọi mốc**
 
 ```bash
-docker compose up -d db redis
+# bảo đảm PostgreSQL đang chạy (xem bước 1.1b)
 cd backend && uv run pytest && uv run ruff check . && uv run mypy app
 cd ../frontend && pnpm test && pnpm lint
 ```
@@ -225,16 +244,16 @@ Prompt 1:
 
 ```text
 Read CLAUDE.md and docs/PRD.md sections 2 and 8. Milestone M0: project skeleton, no business features. Plan first.
-Create: docker-compose.yml (postgres 16, redis, api, worker, web), .env.example, .gitignore (must ignore .env and uploaded data), backend (FastAPI with /health, pydantic-settings, SQLAlchemy 2.0 + Alembic, an RQ worker with one sample job, pytest + ruff + mypy via uv), frontend (Vite + React + TypeScript, routing, TanStack Query, Tailwind, API client generated from the backend OpenAPI schema), CI running lint and tests for both sides, and docs/decisions/001-stack.md.
+Create: no Docker and no Redis in this phase: a README section on installing PostgreSQL locally on Windows, .env.example (database URL and other settings), a JobQueue interface with a PostgreSQL-backed implementation (a jobs table; workers claim jobs with FOR UPDATE SKIP LOCKED) and a worker entry point run by `uv run python -m app.worker`, .gitignore (must ignore .env and uploaded data), backend (FastAPI with /health, pydantic-settings, SQLAlchemy 2.0 + Alembic, a worker process with one sample job through the JobQueue, pytest + ruff + mypy via uv), frontend (Vite + React + TypeScript, routing, TanStack Query, Tailwind, API client generated from the backend OpenAPI schema), CI running lint and tests for both sides (with a PostgreSQL service for backend tests), and docs/decisions/001-stack.md.
 ```
 
 Prompt 2 (sau khi prompt 1 xong):
 
 ```text
-Add a README section explaining how to start everything, run tests, regenerate the API client, and enqueue the sample job. Then verify every command in it from a clean state (docker compose down -v first) and fix whatever fails.
+Add a README section explaining how to start everything, run tests, regenerate the API client, and enqueue the sample job. Then verify every command in it from a clean state (drop and recreate the local database first) and fix whatever fails.
 ```
 
-*Điều cần tự tay kiểm:* chạy `docker compose up --build`; mở địa chỉ `/health` của API thấy OK; mở trang web thấy trang khởi đầu; log của worker cho thấy job mẫu đã chạy; kiểm tra file `.gitignore` có chặn `.env`.
+*Điều cần tự tay kiểm:* chạy `uv run uvicorn app.main:app --reload` (API), rồi mở thêm hai cửa sổ terminal chạy worker (uv run python -m app.worker) và web (pnpm dev); mở địa chỉ `/health` của API thấy OK; mở trang web thấy trang khởi đầu; log của worker cho thấy job mẫu đã chạy; kiểm tra file `.gitignore` có chặn `.env`.
 
 **M1. Đăng nhập, vai trò, dữ liệu nền** (nhánh `m1-auth-orgs`)
 
@@ -248,7 +267,7 @@ Models and Alembic migrations: Department, User, Course, Module, CLO, CourseAssi
 Prompt 2 (giao diện và roster):
 
 ```text
-Milestone M1, part 2. Build the UI: login and change-password pages; Admin and HoD screens for departments, courses, modules (drag to reorder), CLOs and lecturer assignments. Then the student roster import from Excel (student_code, full_name, email, class): downloadable template, dry-run, per-row errors, then apply and create student accounts. Add a seed script: 2 departments, 3 courses with modules, one user per role. Add tests for the import.
+Milestone M1, part 2. Build the UI: login and change-password pages; Admin and HoD screens for departments, courses, modules (drag to reorder), CLOs and lecturer assignments. Then the student roster import from Excel (student_code, full_name, email, class), where student_code must match a configurable pattern (default two letters + six digits like HE170001, normalized to uppercase): downloadable template, dry-run, per-row errors, then apply and create student accounts. Add a seed script: 2 departments, 3 courses with modules, one user per role. Add tests for the import.
 ```
 
 *Điều cần tự tay kiểm:* đăng nhập bằng từng tài khoản seed; đăng nhập HoD bộ môn A và thử mở môn của bộ môn B (phải bị chặn); tạo một file roster có một dòng lỗi (thiếu email) và xem hệ thống báo đúng dòng; đổi vai trò một người rồi xem bản ghi audit.
@@ -284,8 +303,8 @@ Prompt 1 (layout và phiếu PDF):
 
 ```text
 Read CLAUDE.md and docs/PRD.md sections 6 and 7.3. Milestone S1, step 1. Build backend/app/omr as a library with no database dependency. Plan first.
-layout.py: a parametric layout engine (questions <= 60, options <= 6, student code 8 digits, version code 3 digits) producing a serializable Layout with mm coordinates of 4 ArUco corner markers, the QR area, every bubble (grid id, row, col, center, radius) and per-question option counts (unused bubbles flagged).
-sheet_pdf.py: render a Layout to an A4 PDF with ReportLab: title, fill instructions, QR (exam id, layout version, checksum), handwritten name and signature boxes. Add a CLI to generate a sample sheet with 40 questions.
+layout.py: a parametric layout engine (questions <= 60, options <= 6, student code as a configurable pattern, default two letters + six digits like HE170001 with letter columns A-Z and digit columns 0-9, version code 3 digits) producing a serializable Layout with mm coordinates of 4 ArUco corner markers, the QR area, every bubble (grid id, row, col, center, radius) and per-question option counts (unused bubbles flagged).
+sheet_pdf.py: render a Layout to an A4 PDF with ReportLab: title, fill instructions, QR (exam id, layout version, checksum), handwritten name and signature boxes. Add a CLI to generate a sample sheet with 40 questions. The 26-row letter columns make the student code grid tall: verify that the grid, the version code grid, the QR and 60 questions still fit on one A4 page. If not, say so and propose options (for example a configured list of allowed letter prefixes) before continuing.
 ```
 
 *Dừng lại và kiểm bằng tay:* in file PDF mẫu ở tỷ lệ 100% (không chọn fit to page), dùng thước đo khoảng cách giữa hai ô liên tiếp và so với số liệu trong layout. Đo lệch quá 1 mm thì yêu cầu Claude sửa trước khi đi tiếp.
@@ -347,7 +366,7 @@ ai/providers: LLMProvider protocol (generate_structured), an Anthropic implement
 Prompt 2 (tài liệu và job):
 
 ```text
-M4, step 2. ai/ingestion: extract text from PDF, DOCX, PPTX, TXT (20 MB per file, 5 files per request) keeping page or slide references; chunk long documents, generate per chunk and merge. Generation runs as an RQ job with progress and cancel; a GenerationBatch stores parameters, provider, model, prompt version, token usage and the user. Parameters per FR-AI-2. Auto-set lock_option_order for all of the above / none of the above. Run dedupe on results. Add the APIs and tests with the fake provider.
+M4, step 2. ai/ingestion: extract text from PDF, DOCX, PPTX, TXT (20 MB per file, 5 files per request) keeping page or slide references; chunk long documents, generate per chunk and merge. Generation runs as a background job (JobQueue) with progress and cancel; a GenerationBatch stores parameters, provider, model, prompt version, token usage and the user. Parameters per FR-AI-2. Auto-set lock_option_order for all of the above / none of the above. Run dedupe on results. Add the APIs and tests with the fake provider.
 ```
 
 Prompt 3 (giao diện):
@@ -397,7 +416,7 @@ Prompt 1 (backend và job):
 
 ```text
 Read CLAUDE.md and docs/PRD.md sections 6.2-6.5, 7 and 8.4. Milestone M7, step 1: backend only. Reuse app/omr without changing its public interface unless you explain why. Plan first.
-Models: ExamSession, Enrollment, ScanImage, Submission, SubmissionAnswer, GradingRun. Upload endpoints for images and multi-page PDFs; re-encode to JPEG (max 2480 px long edge, quality 85); store raw read results; set expires_at to 4 months after upload. One RQ job per image: read, map answers to option_id through the version option order, grade, apply every flag rule in PRD 6.4, set status auto or needs_review; roster lookup and duplicate student detection within a session. Tests with synthetic sheets covering every flag rule; a needs_review sheet is never counted as auto.
+Models: ExamSession, Enrollment, ScanImage, Submission, SubmissionAnswer, GradingRun. Upload endpoints for images and multi-page PDFs; re-encode to JPEG (max 2480 px long edge, quality 85); store raw read results; set expires_at to 4 months after upload. One background job (JobQueue) per image: read, map answers to option_id through the version option order, grade, apply every flag rule in PRD 6.4, set status auto or needs_review; roster lookup and duplicate student detection within a session. Tests with synthetic sheets covering every flag rule; a needs_review sheet is never counted as auto.
 ```
 
 Prompt 2 (trang Scan):
@@ -482,9 +501,10 @@ Milestones, prompts and definitions of done are in docs/PLAYBOOK.md.
 If a task conflicts with the PRD, stop and ask before changing anything.
 
 ## Stack and commands
-- Backend: Python 3.12, FastAPI, SQLAlchemy 2.0, Alembic, PostgreSQL, Redis + RQ, OpenCV.
+- Backend: Python 3.12, FastAPI, SQLAlchemy 2.0, Alembic, PostgreSQL (installed locally as a Windows service), a PostgreSQL-backed job queue behind a JobQueue interface, OpenCV. No Docker and no Redis for now.
 - Frontend: React, Vite, TypeScript, TanStack Query, Tailwind.
-- Start services: `docker compose up -d db redis`
+- Database: local PostgreSQL service (see docs/PLAYBOOK.md step 1.1b)
+- Run API: `cd backend && uv run uvicorn app.main:app --reload`; worker: `uv run python -m app.worker`; web: `cd frontend && pnpm dev`
 - Backend: `cd backend && uv run pytest`, `uv run ruff check .`, `uv run mypy app`, `uv run alembic upgrade head`
 - Frontend: `cd frontend && pnpm dev`, `pnpm test`, `pnpm lint`, `pnpm e2e`
 
@@ -505,6 +525,7 @@ If a task conflicts with the PRD, stop and ask before changing anything.
 - Database changes only through Alembic migrations.
 - Tests never use the network. AI is tested with the fake provider.
 - Do not add a dependency without saying why.
+- Background work goes through the JobQueue interface. Do not add Docker or Redis unless asked.
 - Small commits with clear messages. Run lint and tests before saying a task is done.
 
 ## Workflow
@@ -518,7 +539,6 @@ If a task conflicts with the PRD, stop and ask before changing anything.
 ```text
 exam-platform/
 ├── CLAUDE.md
-├── docker-compose.yml
 ├── .env.example
 ├── docs/
 │   ├── PRD.md
@@ -540,7 +560,7 @@ exam-platform/
 │   │   ├── importers/          # excel_questions, excel_roster, excel_exam
 │   │   ├── dedupe/
 │   │   ├── storage/
-│   │   └── jobs/               # tác vụ RQ
+│   │   └── jobs/               # tác vụ nền (JobQueue, worker)
 │   └── tests/
 │       ├── unit/
 │       ├── api/
@@ -555,7 +575,7 @@ exam-platform/
 
 | Mốc | Nội dung | Phụ thuộc | Hoàn thành khi |
 | --- | --- | --- | --- |
-| M0 | Nền tảng repo, Docker Compose, khung API và web, CI | — | `docker compose up` chạy đủ dịch vụ; `/health` trả OK; mỗi phía có ít nhất một test xanh trong CI; sinh được API client từ OpenAPI |
+| M0 | Nền tảng repo, PostgreSQL cục bộ, hàng đợi job, khung API và web, CI | — | `uv run uvicorn` (API), worker và web chạy được; `/health` trả OK; mỗi phía có ít nhất một test xanh trong CI; sinh được API client từ OpenAPI |
 | M1 | Đăng nhập, vai trò, bộ môn, môn, module, CLO, roster | M0 | Bốn vai trò đăng nhập được; HoD bộ môn A không thấy môn bộ môn B (có test); import roster có dòng lỗi thì báo đúng dòng; đổi vai trò tạo bản ghi audit |
 | M2 | Ngân hàng câu hỏi, revision, luồng duyệt | M1 | Tiêu chí nghiệm thu mục 4.3 của PRD có test xanh; danh sách lọc trên 5.000 câu phản hồi dưới 1 giây; sửa, gửi duyệt, duyệt chạy trọn vòng |
 | S1 | Spike OMR: layout engine, phiếu PDF, bộ đọc, bộ test ảnh | M0, song song M1–M2 | In A4 đúng tỷ lệ và đo thước khớp layout; ảnh tổng hợp sạch đọc đúng 100%; tỷ lệ sai không cờ trên bộ ảnh xấu ≤ 0,1% hoặc có tài liệu giải thích khoảng cách; đã chạy 10 ảnh thật và ghi kết quả |
