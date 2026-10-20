@@ -42,7 +42,7 @@ corepack enable --install-directory $HOME\corepack-bin
 corepack prepare pnpm@10.15.0 --activate
 ```
 
-## Setup
+## Setup (once)
 
 ```powershell
 copy .env.example .env      # then put the quizai password into both database URLs
@@ -53,37 +53,51 @@ cd ..\frontend
 pnpm install
 ```
 
-`.env` is git-ignored. Never commit it.
+`.env` is git-ignored. Never commit it. Use the database names you created in the PostgreSQL step
+(the `.env.example` defaults are `quizai` and `quizai_test`).
 
-## Run (three terminals)
+## Start everything (three terminals, from the repo root)
 
 ```powershell
-cd backend;  uv run uvicorn app.main:app --reload     # API on http://localhost:8000 (/health, /docs)
-cd backend;  uv run python -m app.worker              # background worker
-cd frontend; pnpm dev                                 # web on http://localhost:5173
+# 1. API: http://localhost:8000  (health check: /health, docs: /docs)
+cd backend; uv run uvicorn app.main:app --reload
+
+# 2. Worker: polls the jobs table; stop with Ctrl+C
+cd backend; uv run python -m app.worker
+
+# 3. Web: http://localhost:5173
+cd frontend; pnpm dev
 ```
 
-Try the sample job: with the worker running, enqueue one from a Python shell
-(`cd backend; uv run python`):
+Check it: `curl http://localhost:8000/health` returns `{"status":"ok","database":"ok"}`, and the
+home page at <http://localhost:5173> shows "API is healthy".
 
-```python
-from app.db.session import get_session_factory
-from app.jobs.pg_queue import PgJobQueue
-PgJobQueue(get_session_factory()).enqueue("sample.echo", {"hello": "world"})
+## Enqueue the sample job
+
+With the worker running, in another terminal:
+
+```powershell
+cd backend; uv run python scripts/enqueue_sample.py "hello from the README"
 ```
 
-The worker logs `sample.echo payload={'hello': 'world'}`.
+The worker log shows `sample.echo payload={'fail': False, 'message': 'hello from the README'}`
+and the job's `status` becomes `succeeded`. To see retries, add `--fail`: the job is retried with
+backoff (5s, 10s) and ends as `dead` after 3 attempts, with the error in `last_error`.
 
 ## Test and lint
 
+PostgreSQL must be running and `TEST_DATABASE_URL` set in `.env`. The test database is reset
+(tables dropped and recreated) on every backend run.
+
 ```powershell
-cd backend;  uv run pytest; uv run ruff check .; uv run mypy
+cd backend; uv run pytest; uv run ruff check .; uv run ruff format --check .; uv run mypy
 cd frontend; pnpm test; pnpm lint; pnpm build
 ```
 
-## API client
+## Regenerate the API client
 
-The frontend client is generated from the backend OpenAPI schema. After changing any endpoint:
+The frontend client is generated from the backend OpenAPI schema. After changing any endpoint
+or response model:
 
 ```powershell
 cd frontend; pnpm gen:api
